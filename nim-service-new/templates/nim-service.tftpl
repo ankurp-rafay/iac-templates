@@ -1,0 +1,48 @@
+apiVersion: apps.nvidia.com/v1alpha1
+kind: NIMService
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+spec:
+  image:
+    repository: ${image}
+    tag: ${image_tag}
+    pullPolicy: IfNotPresent
+    pullSecrets:
+      - ${ngc_secret}
+  authSecret: ${ngc_api_secret}
+  replicas: 1
+  storage:
+    pvc:
+      create: true
+      storageClass: ${storage_class_name}
+      size: ${storage_size}
+      volumeAccessMode: ReadWriteOnce
+  resources:
+    limits:
+      nvidia.com/gpu: ${num_gpus}
+  expose:
+    service:
+      type: ClusterIP
+      port: 8000
+    ingress:
+      annotations:
+        cert-manager.io/cluster-issuer: ${cluster_issuer}
+      enabled: true
+      spec:
+        ingressClassName: nginx
+        rules:
+          - host: ${ingress_host}
+            http:
+              paths:
+              - backend:
+                  service:
+                    name: ${name}
+                    port:
+                      number: 8000
+                path: /
+                pathType: Prefix
+        tls:
+        - hosts:
+          - ${ingress_host}
+          secretName: ${name}-tls
